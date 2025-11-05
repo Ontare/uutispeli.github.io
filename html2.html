@@ -1,0 +1,34 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid Column Mover</title>
+  <link rel="stylesheet" href="styles2.css">
+</head>
+<body>
+  <div class="category-selector">
+    <label for="categorySelect">Category:</label>
+    <select id="categorySelect">
+      <option value="all">All</option>
+      <option value="recent">Recent</option>
+      <option value="sport">Sport</option>
+      <option value="finland">Finland</option>
+    </select>
+    <button id="newGameBtn">New Game</button>
+  </div>
+
+  <h1>Otsikko Peli</h1>
+
+  <div id="gridContainer">
+    <div id="upArrows" class="arrow-row"></div>
+    <table id="grid"></table>
+    <div id="downArrows" class="arrow-row"></div>
+  </div>
+
+  <div id="message" class="error"></div>
+
+  <script src="scripts2.js"></script>
+</body>
+</html>
