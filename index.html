@@ -8,18 +8,23 @@
   <link rel="stylesheet" href="styles2.css">
 </head>
 <body>
-  <div class="category-selector">
-    <label for="categorySelect">Category:</label>
-    <select id="categorySelect">
-      <option value="all">All</option>
-      <option value="recent">Recent</option>
-      <option value="sport">Sport</option>
-      <option value="finland">Finland</option>
-    </select>
-    <button id="newGameBtn">New Game</button>
+  <div class="language-selector">
+    <button id="finnishBtn" class="flag-btn active" title="Suomi">🇫🇮</button>
+    <button id="englishBtn" class="flag-btn" title="English">🇬🇧</button>
   </div>
 
-  <h1>Otsikko Peli</h1>
+  <div class="category-selector">
+    <label for="categorySelect" id="categoryLabel">Kategoria:</label>
+    <select id="categorySelect">
+      <option value="all" data-en="All" data-fi="Kaikki">Kaikki</option>
+      <option value="recent" data-en="Recent" data-fi="Tuoreimmat">Tuoreimmat</option>
+      <option value="sport" data-en="Sport" data-fi="Urheilu">Urheilu</option>
+      <option value="finland" data-en="Finland" data-fi="Suomi">Suomi</option>
+    </select>
+    <button id="newGameBtn">Uusi peli</button>
+  </div>
+
+  <h1 id="gameTitle">Uutispeli</h1>
 
   <div id="gridContainer">
     <div id="upArrows" class="arrow-row"></div>
