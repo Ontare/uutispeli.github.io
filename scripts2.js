@@ -20,7 +20,8 @@ const TRANSLATIONS = {
     gameTitle: "Uutispeli",
     categoryLabel: "Kategoria:",
     newGameBtn: "Uusi peli",
-    winMessage: "🎉 Voitit! Otsikko on paljastunut!",
+    winMessage: "Voitit! Otsikko on paljastunut!",
+    readArticle: "Lue artikkeli",
     categoryAll: "Kaikki",
     categoryRecent: "Tuoreimmat",
     categorySport: "Urheilu",
@@ -30,7 +31,8 @@ const TRANSLATIONS = {
     gameTitle: "News Game",
     categoryLabel: "Category:",
     newGameBtn: "New Game",
-    winMessage: "🎉 You won! The headline is revealed!",
+    winMessage: "You won! The headline is revealed!",
+    readArticle: "Read Article",
     categoryAll: "All",
     categoryRecent: "Recent",
     categorySport: "Sport",
@@ -48,6 +50,7 @@ let currentLanguage = 'fi'; // Default language
 let grid = []; // The main game grid (includes hidden rows for shuffling)
 let originalAsteriskPositions = []; // Tracks which cells started as padding (*)
 let originalContent = []; // Stores the correct letter for each cell
+let currentArticleLink = ''; // Stores the link to the current article
 
 
 // ============================================================
@@ -106,9 +109,9 @@ function buildProxyURL(rssUrl) {
 }
 
 /**
- * Fetches headlines from an RSS feed and extracts the titles.
+ * Fetches headlines from an RSS feed and extracts the titles and links.
  * Skips the first title (which is usually just the feed name).
- * Returns an array where each headline may have multiple parts split by "|".
+ * Returns an array where each item contains the title parts and the article link.
  */
 async function titleSearch(url) {
   try {
@@ -119,27 +122,32 @@ async function titleSearch(url) {
     }
 
     const xmlText = await response.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+    const items = xmlDoc.querySelectorAll("item");
+
     const titlesList = [];
-    const titleRegex = /<title><!\[CDATA\[(.*?)\]\]><\/title>/g;
-    let match;
-    let firstMatch = true; // Skip the first match (feed title itself)
 
-    while ((match = titleRegex.exec(xmlText)) !== null) {
-      if (firstMatch) {
-        firstMatch = false;
-        continue; // Skip feed title
+    items.forEach(item => {
+      const titleElement = item.querySelector("title");
+      const linkElement = item.querySelector("link");
+
+      if (titleElement && linkElement) {
+        const title = titleElement.textContent.toUpperCase();
+        const link = linkElement.textContent;
+        const parts = title.split("|");
+
+        if (parts.length > 1) {
+          parts[1] = parts[1].trim(); // Clean up the main headline part
+        }
+
+        // Store both title parts and the link
+        titlesList.push({
+          title: parts,
+          link: link
+        });
       }
-
-      // Convert to uppercase and split by pipe character if present
-      const title = match[1].toUpperCase();
-      const parts = title.split("|");
-
-      if (parts.length > 1) {
-        parts[1] = parts[1].trim(); // Clean up the main headline part
-      }
-
-      titlesList.push(parts);
-    }
+    });
 
     console.log(titlesList);
     return titlesList;
@@ -284,6 +292,7 @@ function findBestSplitPoint(text, targetIndex, tolerance = 15) {
 function createRandomTitleMatrix(titlesList, numRows = 3, maxLength = 80) {
   if (!titlesList || titlesList.length === 0) {
     console.error("No titles available");
+    currentArticleLink = '';
     return [[['*']]]; // Return a minimal grid if no headlines
   }
 
@@ -293,8 +302,8 @@ function createRandomTitleMatrix(titlesList, numRows = 3, maxLength = 80) {
   }
 
   // Filter to headlines that aren't too long
-  const validTitles = titlesList.filter(title => {
-    const headline = title.length > 1 ? title[1] : title[0];
+  const validTitles = titlesList.filter(item => {
+    const headline = item.title.length > 1 ? item.title[1] : item.title[0];
     return headline.length <= maxLength;
   });
 
@@ -302,8 +311,9 @@ function createRandomTitleMatrix(titlesList, numRows = 3, maxLength = 80) {
   if (validTitles.length === 0) {
     console.warn(`No titles found under ${maxLength} characters. Using all titles and truncating.`);
     const randomIndex = Math.floor(Math.random() * titlesList.length);
-    const randomTitle = titlesList[randomIndex];
-    let headline = randomTitle.length > 1 ? randomTitle[1] : randomTitle[0];
+    const randomItem = titlesList[randomIndex];
+    currentArticleLink = randomItem.link;
+    let headline = randomItem.title.length > 1 ? randomItem.title[1] : randomItem.title[0];
 
     if (headline.length > maxLength) {
       headline = headline.substring(0, maxLength);
@@ -320,11 +330,13 @@ function createRandomTitleMatrix(titlesList, numRows = 3, maxLength = 80) {
 
   // Pick a random valid headline
   const randomIndex = Math.floor(Math.random() * validTitles.length);
-  const randomTitle = validTitles[randomIndex];
-  const headline = randomTitle.length > 1 ? randomTitle[1] : randomTitle[0];
+  const randomItem = validTitles[randomIndex];
+  currentArticleLink = randomItem.link;
+  const headline = randomItem.title.length > 1 ? randomItem.title[1] : randomItem.title[0];
 
   return splitHeadlineIntoMatrix(headline, numRows);
 }
+
 
 /**
  * Splits a headline string into multiple rows for the game grid.
@@ -616,10 +628,14 @@ function checkWin() {
   // Show win message if player solved it!
   const message = document.getElementById("message");
   if (allCorrect) {
-    message.textContent = TRANSLATIONS[currentLanguage].winMessage;
-    message.style.color = "#4caf50";
+    message.innerHTML = `
+      ${TRANSLATIONS[currentLanguage].winMessage}<br>
+      <a href="${currentArticleLink}" target="_blank">
+        ${TRANSLATIONS[currentLanguage].readArticle} →
+      </a>
+    `;
   } else {
-    message.textContent = "";
+    message.innerHTML = "";
   }
 }
 
