@@ -181,6 +181,18 @@ td.dimmed {
 }
 
 .error {
-  color: #ff6666;
+  color: black;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
   margin-top: 1rem;
+  font-size: 1.1rem;
+}
+
+.error a {
+  color: #1c3e6a;
+  text-decoration: underline;
+}
+
+.error a:hover {
+  color: #439aac;
 }
