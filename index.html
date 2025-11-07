@@ -1,30 +1,30 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grid Column Mover</title>
-  <link rel="stylesheet" href="styles2.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Uutispeli - Sarakepulmapeli</title>
+  <link rel="stylesheet" href="styles-fi.css">
 </head>
 <body>
-  <div class="language-selector">
-    <button id="finnishBtn" class="flag-btn active" title="Suomi">🇫🇮</button>
-    <button id="englishBtn" class="flag-btn" title="English">🇬🇧</button>
-  </div>
-
   <div class="category-selector">
     <label for="categorySelect" id="categoryLabel">Kategoria:</label>
     <select id="categorySelect">
-      <option value="all" data-en="All" data-fi="Kaikki">Kaikki</option>
-      <option value="recent" data-en="Recent" data-fi="Tuoreimmat">Tuoreimmat</option>
-      <option value="sport" data-en="Sport" data-fi="Urheilu">Urheilu</option>
-      <option value="finland" data-en="Finland" data-fi="Suomi">Suomi</option>
+      <option value="all">Kaikki</option>
+      <option value="tuoreimmat">Tuoreimmat</option>
+      <option value="kotimaa">Kotimaa</option>
+      <option value="ulkomaat">Ulkomaat</option>
+      <option value="talous">Talous</option>
+      <option value="urheilu">Urheilu</option>
     </select>
     <button id="newGameBtn">Uusi peli</button>
+    <button id="hintBtn">💡 Vihje</button>
   </div>
 
   <h1 id="gameTitle">Uutispeli</h1>
+
+  <div id="hintsRemaining">Vihjeet: <span id="hintCount">3</span></div>
 
   <div id="gridContainer">
     <div id="upArrows" class="arrow-row"></div>
@@ -34,6 +34,6 @@
 
   <div id="message" class="error"></div>
 
-  <script src="scripts2.js"></script>
+  <script src="scripts-fi.js"></script>
 </body>
 </html>
