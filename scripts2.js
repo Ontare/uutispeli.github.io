@@ -1,4 +1,6 @@
 
+
+
 // ============================================================
 // WORD GAME - Finnish Headline Puzzle
 // ============================================================
@@ -7,40 +9,14 @@
 
 const PLAYFIELD_ROWS = 4; // How many rows the player can see and interact with
 
-// RSS feed sources - add more categories here if needed
+// HS.fi RSS feed sources - Finnish news categories
 const RSS_FEEDS = {
-  recent: "https://www.hs.fi/rss/tuoreimmat.xml",
-  sport: "https://www.hs.fi/rss/urheilu.xml",
-  finland: "https://www.hs.fi/rss/suomi.xml",
+  tuoreimmat: "https://www.hs.fi/rss/tuoreimmat.xml",
+  kotimaa: "https://www.hs.fi/rss/kotimaa.xml",
+  ulkomaat: "https://www.hs.fi/rss/ulkomaat.xml",
+  talous: "https://www.hs.fi/rss/talous.xml",
+  urheilu: "https://www.hs.fi/rss/urheilu.xml",
 };
-
-// Language translations
-const TRANSLATIONS = {
-  fi: {
-    gameTitle: "Uutispeli",
-    categoryLabel: "Kategoria:",
-    newGameBtn: "Uusi peli",
-    winMessage: "Voitit! Otsikko on paljastunut!",
-    readArticle: "Lue artikkeli",
-    categoryAll: "Kaikki",
-    categoryRecent: "Tuoreimmat",
-    categorySport: "Urheilu",
-    categoryFinland: "Suomi"
-  },
-  en: {
-    gameTitle: "News Game",
-    categoryLabel: "Category:",
-    newGameBtn: "New Game",
-    winMessage: "You won! The headline is revealed!",
-    readArticle: "Read Article",
-    categoryAll: "All",
-    categoryRecent: "Recent",
-    categorySport: "Sport",
-    categoryFinland: "Finland"
-  }
-};
-
-let currentLanguage = 'fi'; // Default language
 
 
 // ============================================================
@@ -51,40 +27,14 @@ let grid = []; // The main game grid (includes hidden rows for shuffling)
 let originalAsteriskPositions = []; // Tracks which cells started as padding (*)
 let originalContent = []; // Stores the correct letter for each cell
 let currentArticleLink = ''; // Stores the link to the current article
-
-
-// ============================================================
-// LANGUAGE FUNCTIONS
-// ============================================================
-
-/**
- * Updates all UI text based on the selected language
- */
-function updateLanguage(lang) {
-  currentLanguage = lang;
-  const t = TRANSLATIONS[lang];
-
-  // Update text elements
-  document.getElementById("gameTitle").textContent = t.gameTitle;
-  document.getElementById("categoryLabel").textContent = t.categoryLabel;
-  document.getElementById("newGameBtn").textContent = t.newGameBtn;
-
-  // Update dropdown options
-  const categorySelect = document.getElementById("categorySelect");
-  categorySelect.options[0].textContent = t.categoryAll;
-  categorySelect.options[1].textContent = t.categoryRecent;
-  categorySelect.options[2].textContent = t.categorySport;
-  categorySelect.options[3].textContent = t.categoryFinland;
-
-  // Update active flag button
-  document.getElementById("finnishBtn").classList.toggle('active', lang === 'fi');
-  document.getElementById("englishBtn").classList.toggle('active', lang === 'en');
-}
+let hintsRemaining = 3; // Number of hints the player has left
+let lastHintedColumn = -1; // Track which column was last hinted for visualization
+let lockedColumns = []; // Track which columns are locked (have been hinted)
 
 
 // ============================================================
 // RSS FEED & CATEGORY FUNCTIONS
-// ============================================================
+// ======"https://www.hs.fi/rss/suomi.xml"======================================================
 
 /**
  * Picks the appropriate RSS feed URL based on the selected category.
@@ -94,18 +44,17 @@ function getCategoryURL(category) {
   if (category === 'all') {
     const categories = Object.keys(RSS_FEEDS);
     const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-    console.log(`Selected random category: ${randomCategory}`);
     return RSS_FEEDS[randomCategory];
   }
-  return RSS_FEEDS[category] || RSS_FEEDS.recent;
+  return RSS_FEEDS[category] || RSS_FEEDS.tuoreimmat;
 }
 
 /**
- * Wraps the RSS feed URL in a proxy to avoid CORS issues.
- * We can't fetch RSS feeds directly from the browser, so we use a proxy service.
- */
+     * Wraps the RSS feed URL in a proxy to avoid CORS issues.
+     * We can't fetch RSS feeds directly from the browser, so we use a proxy service.
+     */
 function buildProxyURL(rssUrl) {
-  return "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(rssUrl);
+    return "https://corsproxy.io/?" + encodeURIComponent(rssUrl);
 }
 
 /**
@@ -135,21 +84,14 @@ async function titleSearch(url) {
       if (titleElement && linkElement) {
         const title = titleElement.textContent.toUpperCase();
         const link = linkElement.textContent;
-        const parts = title.split("|");
 
-        if (parts.length > 1) {
-          parts[1] = parts[1].trim(); // Clean up the main headline part
-        }
-
-        // Store both title parts and the link
+        // Store both title and the link
         titlesList.push({
-          title: parts,
+          title: title,
           link: link
         });
       }
     });
-
-    console.log(titlesList);
     return titlesList;
   } catch (error) {
     console.error("Error fetching headlines:", error);
@@ -303,7 +245,7 @@ function createRandomTitleMatrix(titlesList, numRows = 3, maxLength = 80) {
 
   // Filter to headlines that aren't too long
   const validTitles = titlesList.filter(item => {
-    const headline = item.title.length > 1 ? item.title[1] : item.title[0];
+    const headline = item.title;
     return headline.length <= maxLength;
   });
 
@@ -313,7 +255,7 @@ function createRandomTitleMatrix(titlesList, numRows = 3, maxLength = 80) {
     const randomIndex = Math.floor(Math.random() * titlesList.length);
     const randomItem = titlesList[randomIndex];
     currentArticleLink = randomItem.link;
-    let headline = randomItem.title.length > 1 ? randomItem.title[1] : randomItem.title[0];
+    let headline = randomItem.title;
 
     if (headline.length > maxLength) {
       headline = headline.substring(0, maxLength);
@@ -332,7 +274,7 @@ function createRandomTitleMatrix(titlesList, numRows = 3, maxLength = 80) {
   const randomIndex = Math.floor(Math.random() * validTitles.length);
   const randomItem = validTitles[randomIndex];
   currentArticleLink = randomItem.link;
-  const headline = randomItem.title.length > 1 ? randomItem.title[1] : randomItem.title[0];
+  const headline = randomItem.title;
 
   return splitHeadlineIntoMatrix(headline, numRows);
 }
@@ -345,6 +287,7 @@ function createRandomTitleMatrix(titlesList, numRows = 3, maxLength = 80) {
 function splitHeadlineIntoMatrix(headline, numRows) {
   const targetCharsPerRow = headline.length / numRows;
   const matrix = [];
+  console.log(headline);
   let startIndex = 0;
 
   for (let i = 0; i < numRows; i++) {
@@ -507,6 +450,11 @@ function shuffleBoard() {
  * Letters wrap around (top letter goes to bottom when moving up, etc).
  */
 function moveColumn(colIndex, shift) {
+  // Don't allow moving locked columns
+  if (lockedColumns.includes(colIndex)) {
+    return;
+  }
+
   const numRows = grid.length;
 
   // Extract all letters from this column
@@ -553,6 +501,11 @@ function renderGrid() {
 
       td.textContent = char;
 
+      // Highlight the hinted column
+      if (colIndex === lastHintedColumn) {
+        td.classList.add('hinted');
+      }
+
       // Dim cells that are padding positions
       if (originalAsteriskPositions[rowIndex] && originalAsteriskPositions[rowIndex][colIndex]) {
         td.classList.add('dimmed');
@@ -583,6 +536,16 @@ function renderArrows() {
     // Up arrow button
     const upBtn = document.createElement("button");
     upBtn.className = "arrow-btn";
+    
+    // Add visual states
+    if (col === lastHintedColumn) {
+      upBtn.classList.add('hinted');
+    }
+    if (lockedColumns.includes(col)) {
+      upBtn.classList.add('locked');
+      upBtn.disabled = true;
+    }
+    
     upBtn.textContent = "▲";
     upBtn.onclick = () => moveColumn(col, -1); // Negative = move up
     upArrows.appendChild(upBtn);
@@ -590,9 +553,130 @@ function renderArrows() {
     // Down arrow button
     const downBtn = document.createElement("button");
     downBtn.className = "arrow-btn";
+    
+    // Add visual states
+    if (col === lastHintedColumn) {
+      downBtn.classList.add('hinted');
+    }
+    if (lockedColumns.includes(col)) {
+      downBtn.classList.add('locked');
+      downBtn.disabled = true;
+    }
+    
     downBtn.textContent = "▼";
     downBtn.onclick = () => moveColumn(col, 1); // Positive = move down
     downArrows.appendChild(downBtn);
+  }
+}
+
+
+// ============================================================
+// HINT SYSTEM
+// ============================================================
+
+/**
+ * Provides a hint by automatically fixing one incorrectly positioned column.
+ * Finds columns where letters are out of place and moves one to the correct position.
+ */
+function useHint() {
+  if (hintsRemaining <= 0) {
+    return;
+  }
+
+  // Find all columns that have at least one letter in the wrong position
+  const incorrectColumns = [];
+  
+  for (let col = 0; col < grid[0].length; col++) {
+    let hasIncorrectLetter = false;
+    
+    for (let row = 0; row < PLAYFIELD_ROWS; row++) {
+      // Skip padding positions
+      if (!originalAsteriskPositions[row][col]) {
+        const currentChar = grid[row][col][0];
+        const correctChar = originalContent[row][col];
+        
+        if (currentChar !== correctChar) {
+          hasIncorrectLetter = true;
+          break;
+        }
+      }
+    }
+    
+    if (hasIncorrectLetter) {
+      incorrectColumns.push(col);
+    }
+  }
+
+  // If no incorrect columns, nothing to hint
+  if (incorrectColumns.length === 0) {
+    return;
+  }
+
+  // Pick a random incorrect column to fix
+  const colToFix = incorrectColumns[Math.floor(Math.random() * incorrectColumns.length)];
+  
+  // Try different shifts to find the correct one
+  const numRows = grid.length;
+  for (let shift = 0; shift < numRows; shift++) {
+    // Test this shift
+    const columnValues = grid.map(row => row[colToFix][0]);
+    const testShift = shift % numRows;
+    const rotated = columnValues.slice(-testShift).concat(columnValues.slice(0, -testShift));
+    
+    // Check if this shift makes all visible letters correct
+    let allCorrect = true;
+    for (let row = 0; row < PLAYFIELD_ROWS; row++) {
+      if (!originalAsteriskPositions[row][colToFix]) {
+        if (rotated[row] !== originalContent[row][colToFix]) {
+          allCorrect = false;
+          break;
+        }
+      }
+    }
+    
+    // If this shift fixes the column, apply it
+    if (allCorrect) {
+      for (let r = 0; r < numRows; r++) {
+        grid[r][colToFix][0] = rotated[r];
+      }
+      break;
+    }
+  }
+
+  // Store which column was hinted for visualization and lock it
+  lastHintedColumn = colToFix;
+  lockedColumns.push(colToFix);
+
+  // Decrement hints and update display
+  hintsRemaining--;
+  updateHintDisplay();
+  
+  // Update the grid and check for win
+  renderGrid();
+  renderArrows();
+  checkWin();
+  
+  // Remove the highlight after 2 seconds (but keep it locked)
+  setTimeout(() => {
+    lastHintedColumn = -1;
+    renderGrid();
+    renderArrows();
+  }, 2000);
+}
+
+/**
+ * Updates the hint counter display and enables/disables the hint button
+ */
+function updateHintDisplay() {
+  const hintCountElement = document.getElementById("hintCount");
+  const hintBtn = document.getElementById("hintBtn");
+  
+  if (hintCountElement) {
+    hintCountElement.textContent = hintsRemaining;
+  }
+  
+  if (hintBtn) {
+    hintBtn.disabled = hintsRemaining <= 0;
   }
 }
 
@@ -629,9 +713,9 @@ function checkWin() {
   const message = document.getElementById("message");
   if (allCorrect) {
     message.innerHTML = `
-      ${TRANSLATIONS[currentLanguage].winMessage}<br>
+      Voitit! Otsikko on paljastunut!<br>
       <a href="${currentArticleLink}" target="_blank">
-        ${TRANSLATIONS[currentLanguage].readArticle} →
+        Lue artikkeli →
       </a>
     `;
   } else {
@@ -650,7 +734,6 @@ function checkWin() {
  */
 async function startNewGame() {
   const category = document.getElementById("categorySelect").value;
-  console.log(`Starting new game with category: ${category}`);
 
   // Get the RSS feed for the selected category
   const rssUrl = getCategoryURL(category);
@@ -663,7 +746,6 @@ async function startNewGame() {
 
   // Create the game grid from a random headline
   const matrix = createRandomTitleMatrix(titles, numRows, maxLength);
-  console.log(matrix);
   grid = buildGrid(matrix);
 
   // Replace padding with random letters
@@ -671,6 +753,12 @@ async function startNewGame() {
 
   // Scramble the board
   shuffleBoard();
+
+  // Reset hints, hinted column, and locked columns
+  hintsRemaining = 5;
+  lastHintedColumn = -1;
+  lockedColumns = [];
+  updateHintDisplay();
 
   // Display everything to the player
   renderGrid();
@@ -683,9 +771,8 @@ async function startNewGame() {
 // Hook up the "New Game" button
 document.getElementById("newGameBtn").addEventListener("click", startNewGame);
 
-// Hook up language buttons
-document.getElementById("finnishBtn").addEventListener("click", () => updateLanguage('fi'));
-document.getElementById("englishBtn").addEventListener("click", () => updateLanguage('en'));
+// Hook up the "Hint" button
+document.getElementById("hintBtn").addEventListener("click", useHint);
 
 // Start the first game when the page loads
 startNewGame();
