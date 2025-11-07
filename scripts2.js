@@ -9,8 +9,6 @@ const PLAYFIELD_ROWS = 4; // How many rows the player can see and interact with
 // HS.fi RSS feed sources - Finnish news categories
 const RSS_FEEDS = {
   tuoreimmat: "https://www.hs.fi/rss/tuoreimmat.xml",
-  kotimaa: "https://www.hs.fi/rss/kotimaa.xml",
-  ulkomaat: "https://www.hs.fi/rss/ulkomaat.xml",
   talous: "https://www.hs.fi/rss/talous.xml",
   urheilu: "https://www.hs.fi/rss/urheilu.xml",
 };
