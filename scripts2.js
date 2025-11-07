@@ -1,6 +1,3 @@
-
-
-
 // ============================================================
 // WORD GAME - Finnish Headline Puzzle
 // ============================================================
@@ -82,8 +79,18 @@ async function titleSearch(url) {
       const linkElement = item.querySelector("link");
 
       if (titleElement && linkElement) {
-        const title = titleElement.textContent.toUpperCase();
+        let title = titleElement.textContent.toUpperCase();
         const link = linkElement.textContent;
+
+        // Remove category prefix (e.g., "KOTIMAA | " or "URHEILU | ")
+        // This removes everything up to and including the first '|'
+        const pipeIndex = title.indexOf('|');
+        if (pipeIndex !== -1) {
+          title = title.substring(pipeIndex + 1).trim();
+        }
+
+        // Remove all remaining '|' characters from the title
+        title = title.replace(/\|/g, '').trim();
 
         // Store both title and the link
         titlesList.push({
